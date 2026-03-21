@@ -1,0 +1,73 @@
+
+/**
+ * @file ssd1306_conf.h
+ * @brief Configuration file for SSD1306 OLED driver
+ *
+ * This file allows you to configure the SSD1306 OLED driver for different
+ * microcontroller families and communication interfaces (I2C or SPI).
+ * You can also set options like screen mirroring and font inclusion.
+ *
+ * @author R. Middel
+ * @date 2025-08-22
+ * @version 1.0
+ *
+ * @copyright Copyright (c) 2025 R. Middel. 
+ * This file is part of the Base project and is licensed under the MIT License.
+ * See the LICENSE file in the root of the project for full license text.
+ * SPDX-License-Identifier: MIT
+ * 
+ */
+#ifndef __SSD1306_CONF_H__
+#define __SSD1306_CONF_H__
+
+// Choose a microcontroller family
+//#define STM32F0
+//#define STM32F1
+#define STM32F4
+//#define STM32L0
+//#define STM32L4
+//#define STM32F3
+//#define STM32H7
+//#define STM32F7
+
+// Choose a bus
+#define SSD1306_USE_I2C
+//#define SSD1306_USE_SPI
+
+// I2C Configuration
+#define SSD1306_I2C_PORT        hi2c1
+#define SSD1306_I2C_ADDR        (0x3C << 1)
+
+// SPI Configuration
+//#define SSD1306_SPI_PORT        hspi1
+//#define SSD1306_CS_Port         OLED_CS_GPIO_Port
+//#define SSD1306_CS_Pin          OLED_CS_Pin
+//#define SSD1306_DC_Port         OLED_DC_GPIO_Port
+//#define SSD1306_DC_Pin          OLED_DC_Pin
+//#define SSD1306_Reset_Port      OLED_Res_GPIO_Port
+//#define SSD1306_Reset_Pin       OLED_Res_Pin
+
+// Mirror the screen if needed
+#define SSD1306_MIRROR_VERT
+#define SSD1306_MIRROR_HORIZ
+
+// Set inverse color if needed
+// # define SSD1306_INVERSE_COLOR
+
+// Include only needed fonts
+#define SSD1306_INCLUDE_FONT_6x8
+#define SSD1306_INCLUDE_FONT_7x10
+#define SSD1306_INCLUDE_FONT_11x18
+// #define SSD1306_INCLUDE_FONT_16x26
+// #define SSD1306_INCLUDE_FONT_16x24
+
+// Some OLEDs don't display anything in first two columns.
+// In this case change the following macro to 130.
+// The default value is 128.
+#define SSD1306_WIDTH           130
+
+// The height can be changed as well if necessary.
+// It can be 32, 64 or 128. The default value is 64.
+// #define SSD1306_HEIGHT          32
+
+#endif /* __SSD1306_CONF_H__ */
