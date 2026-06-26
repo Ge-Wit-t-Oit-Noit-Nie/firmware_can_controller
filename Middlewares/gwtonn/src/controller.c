@@ -340,8 +340,8 @@ CONTROLLER_STATE handle_setup_date_time(uint16_t action) {
     RTC_TimeTypeDef time = {0};
     char string_to_print[32];
 
-    // Load the RTC once, the first time this screen becomes active. The flag is
-    // cleared on exit (BACK or commit) so edits are preserved while editing.
+    // Load the RTC once, the first time this screen becomes active. The
+    // flag is cleared on exit (BACK/commit) so edits survive while editing.
     if (!entered) {
         dt_get_current_datetime(&new_time);
         if (new_time.year < 2000) {
@@ -516,8 +516,9 @@ CONTROLLER_STATE handle_setup_date_time(uint16_t action) {
                      White);
         break;
     case 3:
-        ssd1306_Line(1, (Font_11x18.height * 3) + 2, 1 + (Font_11x18.width * 2),
-                     (Font_11x18.height * 3) + 2, White);
+        ssd1306_Line(1, (Font_11x18.height * 3) + 2,
+                     1 + (Font_11x18.width * 2), (Font_11x18.height * 3) + 2,
+                     White);
         break;
     case 4:
         ssd1306_Line(1 + (Font_11x18.width * 3), (Font_11x18.height * 3) + 2,
