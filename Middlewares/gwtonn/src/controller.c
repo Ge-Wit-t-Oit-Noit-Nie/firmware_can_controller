@@ -59,7 +59,7 @@ extern osMessageQueueId_t controllerQueueHandle;
  * private function prototypes
  *****************************************************************************/
 void display_message(can_message_t *message, uint8_t show_history);
-CONTROLLER_STATE handle_state_live_view(void);
+CONTROLLER_STATE handle_state_live_view(uint16_t action);
 CONTROLLER_STATE handle_log_view(uint16_t last_action);
 CONTROLLER_STATE handle_setup_date_time(uint16_t action);
 
@@ -92,91 +92,30 @@ void controller_thread_handle(void *argument) {
 
     /* Infinite loop */
     for (;;) {
-        // Add your controller logic here
-
         uint16_t action = CONTROL_ACTION_NONE;
-        osStatus_t result =
-            osMessageQueueGet(controllerQueueHandle, &action, NULL, 0);
-
-        if (result == osOK) {
-
-            ssd1306_Fill(Black); // Clear the display
-            ssd1306_SetCursor(1, 1);
-
-            switch (action) {
-            case CONTROL_ACTION_UP:
-                switch (current_state) {
-                case STATE_LIVE_VIEW:
-                    current_state = STATE_LOG_VIEW;
-                    break;
-
-                default:
-                    break;
-                }
-
-                break;
-            case CONTROL_ACTION_DOWN:
-                // Handle DOWN action
-                switch (current_state) {
-                case STATE_LIVE_VIEW:
-                    current_state = STATE_LOG_VIEW;
-                    break;
-
-                default:
-                    break;
-                }
-
-                break;
-            case CONTROL_ACTION_ENTER:
-                // Handle ENTER action
-                switch (current_state) {
-                case STATE_LIVE_VIEW:
-                    current_state = STATE_SETUP_DATE_TIME;
-                    break;
-
-                default:
-                    break;
-                }
-
-                break;
-            case CONTROL_ACTION_BACK:
-                // Handle DOWN action
-                switch (current_state) {
-                case STATE_LOG_VIEW:
-                case STATE_SETUP_DATE_TIME:
-                    current_state = STATE_LIVE_VIEW;
-                    last_index_for_history = 0;
-                    break;
-
-                default:
-                    break;
-                }
-                break;
-
-            default:
-                break;
-            }
-        }
+        osMessageQueueGet(controllerQueueHandle, &action, NULL, 0);
 
         switch (current_state) {
         case STATE_LIVE_VIEW:
-            /* code */
-            current_state = handle_state_live_view();
+            current_state = handle_state_live_view(action);
             break;
-
+        case STATE_MAIN_MENU:
+            current_state = handle_main_menu(action);
+            break;
         case STATE_LOG_VIEW:
             current_state = handle_log_view(action);
             break;
-
         case STATE_SETUP_DATE_TIME:
             current_state = handle_setup_date_time(action);
             break;
-
+        case STATE_SEND_COMMAND:
+            current_state = handle_send_command(action);
+            break;
         default:
             break;
         }
 
-        action = CONTROL_ACTION_NONE;
+        osDelay(10);
     }
 }
 
@@ -312,7 +251,12 @@ void display_message(can_message_t *message, uint8_t show_history) {
  * Also prints the current time on the display.
  * @return CONTROLLER_STATE: The next state of the controller.
  */
-CONTROLLER_STATE handle_state_live_view(void) {
+CONTROLLER_STATE handle_state_live_view(uint16_t action) {
+    if (action == CONTROL_ACTION_ENTER) {
+        ssd1306_clear();
+        return STATE_MAIN_MENU;
+    }
+
     can_message_t message;
 
     char string_to_print[32];
@@ -344,6 +288,12 @@ CONTROLLER_STATE handle_state_live_view(void) {
  * @return CONTROLLER_STATE: The next state of the controller.
  */
 CONTROLLER_STATE handle_log_view(uint16_t last_action) {
+
+    if (last_action == CONTROL_ACTION_BACK) {
+        ssd1306_clear();
+        last_index_for_history = 0;
+        return STATE_MAIN_MENU;
+    }
 
     can_message_t message;
     switch (last_action) {
