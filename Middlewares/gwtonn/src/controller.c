@@ -331,20 +331,161 @@ CONTROLLER_STATE handle_log_view(uint16_t last_action) {
  */
 CONTROLLER_STATE handle_setup_date_time(uint16_t action) {
 
-    uint8_t item_selected = 0; // 0 = year, 1 = month, 2 = day, 3 = hour, 4 = minute, 5 = second
+    // 0 = year, 1 = month, 2 = day, 3 = hour, 4 = minute, 5 = second
+    static uint8_t item_selected = 0;
+    static datetime_t new_time = {0};
+    static uint8_t entered = 0;
 
-    // Handle ENTER action
-    // Set the new date and time
     RTC_DateTypeDef date = {0};
     RTC_TimeTypeDef time = {0};
-    datetime_t new_time = {0};
     char string_to_print[32];
 
-    dt_get_current_datetime(&new_time);
-    if(new_time.year < 2000) {
-        new_time.year = 2025;
+    // Load the RTC once, the first time this screen becomes active. The flag is
+    // cleared on exit (BACK or commit) so edits are preserved while editing.
+    if (!entered) {
+        dt_get_current_datetime(&new_time);
+        if (new_time.year < 2000) {
+            new_time.year = 2025;
+        }
+        entered = 1;
     }
-    
+
+    switch (action) {
+    case CONTROL_ACTION_UP:
+
+        switch (item_selected) {
+        case 0: // Year
+            new_time.year++;
+            break;
+        case 1: // month
+            new_time.month++;
+            if (new_time.month > 12) {
+                new_time.month = 1;
+            }
+            break;
+        case 2: // day
+            new_time.day++;
+            if (new_time.day > 31) {
+                new_time.day = 1;
+            }
+            break;
+        case 3: // Hour
+            new_time.hour++;
+            if (new_time.hour > 23) {
+                new_time.hour = 0;
+            }
+            break;
+        case 4: // Minute
+            new_time.minute++;
+            if (new_time.minute > 59) {
+                new_time.minute = 0;
+            }
+            break;
+        case 5: // second
+            new_time.second++;
+            if (new_time.second > 59) {
+                new_time.second = 0;
+            }
+            break;
+        default:
+            break;
+        }
+
+        break;
+    case CONTROL_ACTION_DOWN:
+
+        switch (item_selected) {
+        case 0: // Year
+            new_time.year--;
+            break;
+        case 1: // month
+            new_time.month--;
+            if (new_time.month < 1) {
+                new_time.month = 12;
+            }
+            break;
+        case 2: // day
+            new_time.day--;
+            if (new_time.day < 1) {
+                new_time.day = 31;
+            }
+            break;
+        case 3: // Hour
+            if (new_time.hour > 1) {
+                new_time.hour--;
+            } else {
+                new_time.hour = 23;
+            }
+            break;
+        case 4: // Minute
+            if (new_time.minute > 1) {
+                new_time.minute--;
+            } else {
+                new_time.minute = 59;
+            }
+            break;
+        case 5: // second
+            if (new_time.second > 1) {
+                new_time.second--;
+            } else {
+                new_time.second = 59;
+            }
+            break;
+        default:
+            break;
+        }
+        break;
+    case CONTROL_ACTION_ENTER:
+
+        switch (item_selected) {
+        case 0:              // Year
+        case 1:              // month
+        case 2:              // day
+        case 3:              // Hour
+        case 4:              // Minute
+            item_selected++; // Move to next field
+            break;
+
+        default:
+
+            date.Year = new_time.year - 2000; // Assuming year is 20xx
+            date.Month = new_time.month;
+            date.Date = new_time.day;
+            date.WeekDay = 0; // Not used
+
+            time.Hours = new_time.hour;
+            time.Minutes = new_time.minute;
+            time.Seconds = new_time.second;
+            time.SubSeconds = 0;
+            time.TimeFormat = RTC_HOURFORMAT_24;
+            time.DayLightSaving = RTC_DAYLIGHTSAVING_NONE;
+            time.StoreOperation = RTC_STOREOPERATION_RESET;
+
+            if (HAL_RTC_SetDate(&hrtc, &date, RTC_FORMAT_BIN) != HAL_OK) {
+                // Handle error
+                Error_Handler();
+            }
+            if (HAL_RTC_SetTime(&hrtc, &time, RTC_FORMAT_BIN) != HAL_OK) {
+                // Handle error
+                Error_Handler();
+            }
+            ssd1306_clear();
+            item_selected = 0;
+            entered = 0;
+            return STATE_MAIN_MENU;
+        }
+        break;
+
+    case CONTROL_ACTION_BACK:
+        ssd1306_clear();
+        item_selected = 0;
+        entered = 0;
+        return STATE_MAIN_MENU;
+
+    default:
+        break;
+    }
+
     ssd1306_Fill(Black); // Clear the display
     ssd1306_SetCursor(1, 1);
     ssd1306_WriteString("Set Date/Time", Font_11x18, White);
@@ -353,237 +494,46 @@ CONTROLLER_STATE handle_setup_date_time(uint16_t action) {
     snprintf(string_to_print, 32, "%04ld-%02d-%02d", new_time.year,
              new_time.month, new_time.day);
     ssd1306_WriteString(string_to_print, Font_11x18, White);
-    ssd1306_Line(1, (Font_11x18.height * 2 + 1), Font_11x18.width * 4,
-                 (Font_11x18.height * 2) + 1, White);
 
     ssd1306_SetCursor(1, (Font_11x18.height * 2) + 2);
     snprintf(string_to_print, 32, "%02d:%02d:%02d", new_time.hour,
              new_time.minute, new_time.second);
     ssd1306_WriteString(string_to_print, Font_11x18, White);
 
-    ssd1306_UpdateScreen(); // update screen
-    /* Infinite loop */
-    for (;;) {
-        // Add your controller logic here
-        ssd1306_Fill(Black); // Clear the display
-        ssd1306_SetCursor(1, 1);
-        ssd1306_WriteString("Set Date/Time", Font_11x18, White);
-
-        ssd1306_SetCursor(1, Font_11x18.height + 2);
-        snprintf(string_to_print, 32, "%04ld-%02d-%02d", new_time.year,
-                 new_time.month, new_time.day);
-        ssd1306_WriteString(string_to_print, Font_11x18, White);
-        ssd1306_Line(1, (Font_11x18.height * 2 + 1), Font_11x18.width * 4,
+    switch (item_selected) {
+    case 0:
+        ssd1306_Line(1, (Font_11x18.height * 2) + 1, Font_11x18.width * 4,
                      (Font_11x18.height * 2) + 1, White);
+        break;
+    case 1:
+        ssd1306_Line(1 + (Font_11x18.width * 5), (Font_11x18.height * 2) + 1,
+                     1 + (Font_11x18.width * 7), (Font_11x18.height * 2) + 1,
+                     White);
+        break;
+    case 2:
+        ssd1306_Line(1 + (Font_11x18.width * 8), (Font_11x18.height * 2) + 1,
+                     1 + (Font_11x18.width * 10), (Font_11x18.height * 2) + 1,
+                     White);
+        break;
+    case 3:
+        ssd1306_Line(1, (Font_11x18.height * 3) + 2, 1 + (Font_11x18.width * 2),
+                     (Font_11x18.height * 3) + 2, White);
+        break;
+    case 4:
+        ssd1306_Line(1 + (Font_11x18.width * 3), (Font_11x18.height * 3) + 2,
+                     1 + (Font_11x18.width * 5), (Font_11x18.height * 3) + 2,
+                     White);
+        break;
+    case 5:
+        ssd1306_Line(1 + (Font_11x18.width * 6), (Font_11x18.height * 3) + 2,
+                     1 + (Font_11x18.width * 8), (Font_11x18.height * 3) + 2,
+                     White);
+        break;
+    default:
+        break;
+    }
 
-        ssd1306_SetCursor(1, (Font_11x18.height * 2) + 2);
-        snprintf(string_to_print, 32, "%02d:%02d:%02d", new_time.hour,
-                 new_time.minute, new_time.second);
-        ssd1306_WriteString(string_to_print, Font_11x18, White);
-        
-        action = CONTROL_ACTION_NONE;
-        osStatus_t result =
-            osMessageQueueGet(controllerQueueHandle, &action, NULL, 0);
-
-        if (result == osOK) {
-
-            switch (action) {
-            case CONTROL_ACTION_UP:
-
-                switch (item_selected) {
-                case 0: // Year
-                    new_time.year++;
-                    break;
-                case 1: // month
-                    new_time.month++;
-                    if (new_time.month > 12) {
-                        new_time.month = 1;
-                    }
-                    break;
-                case 2: // day
-                    new_time.day++;
-                    if (new_time.day > 31) {
-                        new_time.day = 1;
-                    }
-                    break;
-                case 3: // Hour
-                    new_time.hour++;
-                    if (new_time.hour > 23) {
-                        new_time.hour = 0;
-                    }
-                    break;
-                case 4: // Minute
-                    new_time.minute++;
-                    if (new_time.minute > 59) {
-                        new_time.minute = 0;
-                    }
-                    break;
-                case 5: // second
-                    new_time.second++;
-                    if (new_time.second > 59) {
-                        new_time.second = 0;
-                    }
-                    break;
-                default:
-                    break;
-                }
-
-                break;
-            case CONTROL_ACTION_DOWN:
-
-                switch (item_selected) {
-                case 0: // Year
-                    new_time.year--;
-                    break;
-                case 1: // month
-                    new_time.month--;
-                    if (new_time.month < 1) {
-                        new_time.month = 12;
-                    }
-                    break;
-                case 2: // day
-                    new_time.day--;
-                    if (new_time.day < 1) {
-                        new_time.day = 31;
-                    }
-                    break;
-                case 3: // Hour
-                    if (new_time.hour > 1) {
-                        new_time.hour--;
-                    } else {
-                        new_time.hour = 23;
-                    }
-                    break;
-                case 4: // Minute
-                    if (new_time.minute > 1) {
-                        new_time.minute--;
-                    } else {
-                        new_time.minute = 59;
-                    }
-                    break;
-                case 5: // second
-                    if (new_time.second > 1) {
-                        new_time.second--;
-                    } else {
-                        new_time.second = 59;
-                    }
-                    break;
-                default:
-                    break;
-                }
-                break;
-            case CONTROL_ACTION_ENTER:
-
-                switch (item_selected) {
-                case 0:              // Year
-                case 1:              // month
-                case 2:              // day
-                case 3:              // Hour
-                case 4:              // Minute
-                    item_selected++; // Move to month
-                    /* code */
-                    break;
-
-                default:
-
-                    date.Year = new_time.year - 2000; // Assuming year is 20xx
-                    date.Month = new_time.month;
-                    date.Date = new_time.day;
-                    date.WeekDay = 0; // Not used
-
-                    time.Hours = new_time.hour;
-                    time.Minutes = new_time.minute;
-                    time.Seconds = new_time.second;
-                    time.SubSeconds = 0;
-                    time.TimeFormat = RTC_HOURFORMAT_24;
-                    time.DayLightSaving = RTC_DAYLIGHTSAVING_NONE;
-                    time.StoreOperation = RTC_STOREOPERATION_RESET;
-
-                    if (HAL_RTC_SetDate(&hrtc, &date, RTC_FORMAT_BIN) !=
-                        HAL_OK) {
-                        // Handle error
-                        Error_Handler();
-                    }
-                    if (HAL_RTC_SetTime(&hrtc, &time, RTC_FORMAT_BIN) !=
-                        HAL_OK) {
-                        // Handle error
-                        Error_Handler();
-                    }
-                    ssd1306_clear();
-
-                    return STATE_LIVE_VIEW;
-                }
-                break;
-
-            case CONTROL_ACTION_BACK:
-                // Handle BACK action
-                ssd1306_clear();
-                return STATE_LIVE_VIEW;
-                break;
-
-            default:
-                break;
-            }
-
-            ssd1306_SetCursor(1, Font_11x18.height + 2);
-            snprintf(string_to_print, 32, "%04ld-%02d-%02d", new_time.year,
-                     new_time.month, new_time.day);
-            ssd1306_WriteString(string_to_print, Font_11x18, White);
-
-            switch (item_selected) {
-            case 0:
-                ssd1306_Line(1, 
-                            (Font_11x18.height * 2) + 1,
-                             Font_11x18.width * 4, 
-                             (Font_11x18.height * 2) + 1,
-                             White);
-                break;
-            case 1:
-                ssd1306_Line(1 + (Font_11x18.width * 5),
-                             (Font_11x18.height * 2) + 1,
-                             1 + (Font_11x18.width * 7),
-                             (Font_11x18.height * 2) + 1, White);
-                break;
-            case 2:
-                ssd1306_Line(1 + (Font_11x18.width * 8),
-                             (Font_11x18.height * 2) + 1,
-                             1 + (Font_11x18.width * 10),
-                             (Font_11x18.height * 2) + 1, White);
-                break;
-
-            case 3:
-                ssd1306_Line(1, 
-                             (Font_11x18.height * 3) + 2,
-                             1 + (Font_11x18.width * 2), 
-                             (Font_11x18.height * 3) + 2,
-                             White);
-                break;
-            case 4:
-                ssd1306_Line(1 + (Font_11x18.width * 3),
-                             (Font_11x18.height * 3) + 2,
-                             1 + (Font_11x18.width * 5),
-                             (Font_11x18.height * 3) + 2, White);
-                break;
-            case 5:
-                ssd1306_Line(1 + (Font_11x18.width * 6),
-                             (Font_11x18.height * 3) + 2,
-                             1 + (Font_11x18.width * 8),
-                             (Font_11x18.height * 3) + 2, White);
-                break;
-
-            default:
-                break;
-            }
-
-            ssd1306_SetCursor(1, (Font_11x18.height * 2) + 2);
-            snprintf(string_to_print, 32, "%02d:%02d:%02d", new_time.hour,
-                     new_time.minute, new_time.second);
-            ssd1306_WriteString(string_to_print, Font_11x18, White);
-
-            ssd1306_UpdateScreen(); // update screen
-        }
-
-    };
+    ssd1306_UpdateScreen(); // update screen
     return STATE_SETUP_DATE_TIME;
 }
 
