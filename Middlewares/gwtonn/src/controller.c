@@ -40,6 +40,13 @@ typedef enum ENUM_CONTROLLER_STATE {
     STATE_SETUP_DATE_TIME = 2,
 } CONTROLLER_STATE;
 
+typedef struct {
+    const char *title;
+    const char *const *items;
+    uint8_t count;
+    uint8_t selected;
+} menu_t;
+
 /*****************************************************************************
  * Global Variables
  *****************************************************************************/
@@ -53,6 +60,9 @@ void display_message(can_message_t *message, uint8_t show_history);
 CONTROLLER_STATE handle_state_live_view(void);
 CONTROLLER_STATE handle_log_view(uint16_t last_action);
 CONTROLLER_STATE handle_setup_date_time(uint16_t action);
+
+void menu_render(const menu_t *m);
+int menu_handle(menu_t *m, uint16_t action);
 
 void ssd1306_clear();
 
@@ -623,5 +633,51 @@ CONTROLLER_STATE handle_setup_date_time(uint16_t action) {
 
 void ssd1306_clear() {
     ssd1306_Fill(Black); // Clear the display
+    ssd1306_UpdateScreen();
+}
+
+/**
+ * @brief  Process one input action for a list menu.
+ * @param  m: Pointer to the menu (its `selected` field may be updated).
+ * @param  action: One of the CONTROL_ACTION_* values.
+ * @return -1 if nothing actionable happened, -2 if BACK was pressed, or the
+ *         selected item index (>= 0) if ENTER was pressed.
+ */
+int menu_handle(menu_t *m, uint16_t action) {
+    switch (action) {
+    case CONTROL_ACTION_UP:
+        m->selected = (m->selected == 0) ? (m->count - 1) : (m->selected - 1);
+        return -1;
+    case CONTROL_ACTION_DOWN:
+        m->selected = (m->selected + 1) % m->count;
+        return -1;
+    case CONTROL_ACTION_ENTER:
+        return (int)m->selected;
+    case CONTROL_ACTION_BACK:
+        return -2;
+    default:
+        return -1;
+    }
+}
+
+/**
+ * @brief  Render a list menu: title on the top row, one item per following
+ *         row, the selected item prefixed with '>'.
+ * @param  m: Pointer to the menu to render.
+ */
+void menu_render(const menu_t *m) {
+    char line[32];
+
+    ssd1306_Fill(Black);
+    ssd1306_SetCursor(1, 1);
+    ssd1306_WriteString(m->title, Font_7x10, White);
+
+    for (uint8_t i = 0; i < m->count; i++) {
+        snprintf(line, sizeof(line), "%c %s",
+                 (i == m->selected) ? '>' : ' ', m->items[i]);
+        ssd1306_SetCursor(1, (Font_7x10.height * (i + 1)) + 2);
+        ssd1306_WriteString(line, Font_7x10, White);
+    }
+
     ssd1306_UpdateScreen();
 }
