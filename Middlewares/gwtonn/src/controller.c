@@ -67,7 +67,7 @@ CONTROLLER_STATE handle_setup_date_time(uint16_t action);
 
 void menu_render(const menu_t *m);
 int menu_handle(menu_t *m, uint16_t action);
-void ssd1306_clear();
+void ssd1306_clear(void);
 
 CONTROLLER_STATE handle_main_menu(uint16_t action);
 CONTROLLER_STATE handle_send_command(uint16_t action);
@@ -196,8 +196,15 @@ void display_message(can_message_t *message, uint8_t show_history) {
     ssd1306_WriteString(string_to_print, Font_7x10, White);
 
     switch (message->code) {
+    case MESSAGE_ADVERTISE_REQ:
+        snprintf(string_to_print, 32, "Advertisement request");
+        ssd1306_SetCursor(1, (Font_7x10.height * 2) + 1);
+        ssd1306_WriteString(string_to_print, Font_7x10, White);
+        break;
     case MESSAGE_CODE_TIME:
-        // Do not react on this message as it is you who sends it
+        snprintf(string_to_print, 32, "Time message");
+        ssd1306_SetCursor(1, (Font_7x10.height * 2) + 1);
+        ssd1306_WriteString(string_to_print, Font_7x10, White);
         break;
     case MESSAGE_LOG_EVENT:
         snprintf(string_to_print, 32, "M: %03d %03d %03d", message->data[0],
@@ -544,7 +551,7 @@ CONTROLLER_STATE handle_setup_date_time(uint16_t action) {
     return STATE_SETUP_DATE_TIME;
 }
 
-void ssd1306_clear() {
+void ssd1306_clear(void) {
     ssd1306_Fill(Black); // Clear the display
     ssd1306_UpdateScreen();
 }
