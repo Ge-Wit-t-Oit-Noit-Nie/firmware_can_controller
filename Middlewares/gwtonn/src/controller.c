@@ -65,6 +65,7 @@ CONTROLLER_STATE handle_setup_date_time(uint16_t action);
 
 void menu_render(const menu_t *m);
 int menu_handle(menu_t *m, uint16_t action);
+void ssd1306_clear();
 
 CONTROLLER_STATE handle_main_menu(uint16_t action);
 CONTROLLER_STATE handle_send_command(uint16_t action);
@@ -617,6 +618,7 @@ CONTROLLER_STATE handle_main_menu(uint16_t action) {
     case 2:
         return STATE_SEND_COMMAND;
     case -2: // BACK
+        ssd1306_clear();
         return STATE_LIVE_VIEW;
     default: // -1: nothing actionable
         break;
@@ -642,8 +644,7 @@ CONTROLLER_STATE handle_send_command(uint16_t action) {
         return STATE_LIVE_VIEW;
         break;
     case 1: // Send advertisement request
-        // TODO: define MESSAGE_ADVERTISE_REQ + payload in can.h, then
-        //       can_write(MESSAGE_ADVERTISE_REQ, payload, length) here.
+        can_write(MESSAGE_ADVERTISE_REQ, NULL, 0);
         show_sent_confirmation();
         return STATE_LIVE_VIEW;
         break;
