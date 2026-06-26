@@ -310,6 +310,12 @@ CONTROLLER_STATE handle_state_live_view(void) {
     if (can_get_last_message(&message) == 0) {
         display_message(&message, 0);
     }
+    else
+    {
+        ssd1306_SetCursor(1, (Font_7x10.height * 2) + 1);
+        ssd1306_WriteString("No messages", Font_7x10, White);
+        ssd1306_UpdateScreen(); // update screen
+    }
 
     return STATE_LIVE_VIEW;
 }

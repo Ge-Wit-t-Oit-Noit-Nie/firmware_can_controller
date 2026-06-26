@@ -19,7 +19,7 @@ if(NOT CMAKE_BUILD_TYPE)
 endif()
 
 # Set the project name
-set(CMAKE_PROJECT_NAME can_controller)
+set(CMAKE_PROJECT_NAME firmware_can_controller)
 
 
 # Enable compile command to ease indexing with e.g. clangd
@@ -49,7 +49,7 @@ target_sources(${CMAKE_PROJECT_NAME} PRIVATE
     Middlewares/gwtonn/src/can.c
     Middlewares/gwtonn/src/controller.c
     Middlewares/gwtonn/src/datetime.c
-    Middlewares/gwtonn/src/timer.c
+
     Middlewares/gwtonn/src/sd_card.c
     Middlewares/gwtonn/src/user_diskio_spi.c
     Middlewares/ssd1306/ssd1306.c
