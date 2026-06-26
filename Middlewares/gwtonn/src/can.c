@@ -31,6 +31,7 @@
 #include "ssd1306.h"
 #include "ssd1306_fonts.h"
 #include "sd_card.h"
+#include "stm32_uid.h"
 
 #define CAN_EVENT_MESSAGE_RECEIVED 0x01
 #define MAX_HISTORIC_MESSAGES 100
@@ -91,7 +92,7 @@ void can_write(MESSAGE_CODE code, uint8_t *data, uint16_t length) {
                       GPIO_PIN_SET); // Set a pin to indicate activity
 
     uint8_t message[12] = {
-        code, 0x02, 0x00, 0x00, 0x00, 0x00,
+        code, stm32_get_uid(), 0x00, 0x00, 0x00, 0x00,
         0x00, 0x00, 0x00, 0xFF, 0xFF, 0xFF}; // Initialize message buffer
 
     for (int i = 0; i < length && i < (UART_RX_BUF_SIZE - 5); i++) {

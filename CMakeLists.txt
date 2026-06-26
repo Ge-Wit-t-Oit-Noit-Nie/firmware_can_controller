@@ -49,6 +49,7 @@ target_sources(${CMAKE_PROJECT_NAME} PRIVATE
     Middlewares/gwtonn/src/can.c
     Middlewares/gwtonn/src/controller.c
     Middlewares/gwtonn/src/datetime.c
+    Middlewares/gwtonn/src/stm32_uid.c
 
     Middlewares/gwtonn/src/sd_card.c
     Middlewares/gwtonn/src/user_diskio_spi.c

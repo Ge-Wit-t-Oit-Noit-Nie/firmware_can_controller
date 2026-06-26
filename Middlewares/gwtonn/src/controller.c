@@ -30,6 +30,7 @@
 #include "controller.h"
 #include "ssd1306.h"
 #include "ssd1306_fonts.h"
+#include "stm32_uid.h"
 
 /*****************************************************************************
  * typedef Defines
@@ -40,6 +41,7 @@ typedef enum ENUM_CONTROLLER_STATE {
     STATE_LOG_VIEW,
     STATE_SETUP_DATE_TIME,
     STATE_SEND_COMMAND,
+    STATE_ABOUT,
 } CONTROLLER_STATE;
 
 typedef struct {
@@ -69,6 +71,7 @@ void ssd1306_clear();
 
 CONTROLLER_STATE handle_main_menu(uint16_t action);
 CONTROLLER_STATE handle_send_command(uint16_t action);
+CONTROLLER_STATE handle_about(uint16_t action);
 void show_sent_confirmation(void);
 
 void ssd1306_clear();
@@ -111,6 +114,9 @@ void controller_thread_handle(void *argument) {
             break;
         case STATE_SEND_COMMAND:
             current_state = handle_send_command(action);
+            break;
+        case STATE_ABOUT:
+            current_state = handle_about(action);
             break;
         default:
             break;
@@ -607,8 +613,9 @@ void show_sent_confirmation(void) {
  * @return The next controller state.
  */
 CONTROLLER_STATE handle_main_menu(uint16_t action) {
-    static const char *const items[] = {"Log", "Date/Time", "Send command"};
-    static menu_t menu = {"Main Menu", items, 3, 0};
+    static const char *const items[] = {
+        "Log", "Date/Time", "Send command", "About"};
+    static menu_t menu = {"Main Menu", items, 4, 0};
 
     switch (menu_handle(&menu, action)) {
     case 0:
@@ -617,6 +624,9 @@ CONTROLLER_STATE handle_main_menu(uint16_t action) {
         return STATE_SETUP_DATE_TIME;
     case 2:
         return STATE_SEND_COMMAND;
+    case 3:
+        ssd1306_clear();
+        return STATE_ABOUT;
     case -2: // BACK
         ssd1306_clear();
         return STATE_LIVE_VIEW;
@@ -626,6 +636,32 @@ CONTROLLER_STATE handle_main_menu(uint16_t action) {
 
     menu_render(&menu);
     return STATE_MAIN_MENU;
+}
+
+/**
+ * @brief  About screen: shows the device's 8-bit CAN ID derived from the
+ *         96-bit STM32 UID. Press BACK to return to the main menu.
+ * @param  action: One of the CONTROL_ACTION_* values.
+ * @return The next controller state.
+ */
+CONTROLLER_STATE handle_about(uint16_t action) {
+    if (action == CONTROL_ACTION_BACK) {
+        ssd1306_clear();
+        return STATE_MAIN_MENU;
+    }
+
+    char line[32];
+
+    ssd1306_Fill(Black);
+    ssd1306_SetCursor(1, 1);
+    ssd1306_WriteString("About", Font_7x10, White);
+
+    snprintf(line, sizeof(line), "Device ID: %03d", stm32_get_uid());
+    ssd1306_SetCursor(1, Font_7x10.height + 4);
+    ssd1306_WriteString(line, Font_7x10, White);
+
+    ssd1306_UpdateScreen();
+    return STATE_ABOUT;
 }
 
 /**
