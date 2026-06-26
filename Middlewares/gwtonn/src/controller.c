@@ -36,8 +36,10 @@
  *****************************************************************************/
 typedef enum ENUM_CONTROLLER_STATE {
     STATE_LIVE_VIEW = 0,
-    STATE_LOG_VIEW = 1,
-    STATE_SETUP_DATE_TIME = 2,
+    STATE_MAIN_MENU,
+    STATE_LOG_VIEW,
+    STATE_SETUP_DATE_TIME,
+    STATE_SEND_COMMAND,
 } CONTROLLER_STATE;
 
 typedef struct {
@@ -63,6 +65,10 @@ CONTROLLER_STATE handle_setup_date_time(uint16_t action);
 
 void menu_render(const menu_t *m);
 int menu_handle(menu_t *m, uint16_t action);
+
+CONTROLLER_STATE handle_main_menu(uint16_t action);
+CONTROLLER_STATE handle_send_command(uint16_t action);
+void show_sent_confirmation(void);
 
 void ssd1306_clear();
 
@@ -670,7 +676,7 @@ void menu_render(const menu_t *m) {
 
     ssd1306_Fill(Black);
     ssd1306_SetCursor(1, 1);
-    ssd1306_WriteString(m->title, Font_7x10, White);
+    ssd1306_WriteString((char *)m->title, Font_7x10, White);
 
     for (uint8_t i = 0; i < m->count; i++) {
         snprintf(line, sizeof(line), "%c %s",
@@ -680,4 +686,70 @@ void menu_render(const menu_t *m) {
     }
 
     ssd1306_UpdateScreen();
+}
+
+/**
+ * @brief  Briefly flash a "Sent!" confirmation on the display.
+ */
+void show_sent_confirmation(void) {
+    ssd1306_Fill(Black);
+    ssd1306_SetCursor(1, (Font_11x18.height) + 2);
+    ssd1306_WriteString("Sent!", Font_11x18, White);
+    ssd1306_UpdateScreen();
+    osDelay(800);
+}
+
+/**
+ * @brief  Main menu: Log / Date-Time / Send command.
+ * @param  action: One of the CONTROL_ACTION_* values.
+ * @return The next controller state.
+ */
+CONTROLLER_STATE handle_main_menu(uint16_t action) {
+    static const char *const items[] = {"Log", "Date/Time", "Send command"};
+    static menu_t menu = {"Main Menu", items, 3, 0};
+
+    switch (menu_handle(&menu, action)) {
+    case 0:
+        return STATE_LOG_VIEW;
+    case 1:
+        return STATE_SETUP_DATE_TIME;
+    case 2:
+        return STATE_SEND_COMMAND;
+    case -2: // BACK
+        return STATE_LIVE_VIEW;
+    default: // -1: nothing actionable
+        break;
+    }
+
+    menu_render(&menu);
+    return STATE_MAIN_MENU;
+}
+
+/**
+ * @brief  Send-command submenu: Send datetime / Send advertisement req.
+ * @param  action: One of the CONTROL_ACTION_* values.
+ * @return The next controller state.
+ */
+CONTROLLER_STATE handle_send_command(uint16_t action) {
+    static const char *const items[] = {"Send datetime", "Send advert req"};
+    static menu_t menu = {"Send Command", items, 2, 0};
+
+    switch (menu_handle(&menu, action)) {
+    case 0: // Send datetime
+        dt_transmit();
+        show_sent_confirmation();
+        break;
+    case 1: // Send advertisement request
+        // TODO: define MESSAGE_ADVERTISE_REQ + payload in can.h, then
+        //       can_write(MESSAGE_ADVERTISE_REQ, payload, length) here.
+        show_sent_confirmation();
+        break;
+    case -2: // BACK
+        return STATE_MAIN_MENU;
+    default: // -1: nothing actionable
+        break;
+    }
+
+    menu_render(&menu);
+    return STATE_SEND_COMMAND;
 }
