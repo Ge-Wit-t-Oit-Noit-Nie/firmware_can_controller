@@ -84,7 +84,7 @@ void controller_thread_handle(void *argument) {
     /* USER CODE BEGIN controller_thread_handle */
     UNUSED(argument);
 
-    CONTROLLER_STATE current_state = STATE_LIVE_VIEW;
+    static CONTROLLER_STATE current_state = STATE_LIVE_VIEW;
 
     ssd1306_Init();
     ssd1306_Fill(Black);
@@ -258,7 +258,6 @@ CONTROLLER_STATE handle_state_live_view(uint16_t action) {
     }
 
     can_message_t message;
-
     char string_to_print[32];
     datetime_t timestamp;
     dt_get_current_datetime(&timestamp);
@@ -598,6 +597,7 @@ void show_sent_confirmation(void) {
     ssd1306_WriteString("Sent!", Font_11x18, White);
     ssd1306_UpdateScreen();
     osDelay(800);
+    ssd1306_clear();
 }
 
 /**
@@ -639,11 +639,13 @@ CONTROLLER_STATE handle_send_command(uint16_t action) {
     case 0: // Send datetime
         dt_transmit();
         show_sent_confirmation();
+        return STATE_LIVE_VIEW;
         break;
     case 1: // Send advertisement request
         // TODO: define MESSAGE_ADVERTISE_REQ + payload in can.h, then
         //       can_write(MESSAGE_ADVERTISE_REQ, payload, length) here.
         show_sent_confirmation();
+        return STATE_LIVE_VIEW;
         break;
     case -2: // BACK
         return STATE_MAIN_MENU;

@@ -53,7 +53,7 @@ typedef StaticQueue_t osStaticMessageQDef_t;
 osThreadId_t controller_threHandle;
 const osThreadAttr_t controller_thre_attributes = {
   .name = "controller_thre",
-  .stack_size = 128 * 4,
+  .stack_size = 512 * 4,
   .priority = (osPriority_t) osPriorityNormal,
 };
 /* Definitions for can_thread_hand */
@@ -61,7 +61,7 @@ osThreadId_t can_thread_handHandle;
 const osThreadAttr_t can_thread_hand_attributes = {
   .name = "can_thread_hand",
   .stack_size = 900 * 4,
-  .priority = (osPriority_t) osPriorityAboveNormal,
+  .priority = (osPriority_t) osPriorityNormal,
 };
 /* Definitions for controllerQueue */
 osMessageQueueId_t controllerQueueHandle;
